@@ -1,0 +1,1621 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Cotisations">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1A1A18">
+<style>
+  #splash{position:fixed;inset:0;background:#1A1A18;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .6s;}
+  #splash.hide{opacity:0;pointer-events:none;}
+  .spl-ico{font-size:64px;animation:pulse 1s ease infinite alternate;}
+  .spl-title{font-family:'DM Serif Display',serif;color:#E8C96A;font-size:26px;text-align:center;line-height:1.2;}
+  .spl-sub{color:rgba(201,168,76,0.45);font-size:11px;letter-spacing:3px;text-transform:uppercase;}
+  .spl-bar{width:140px;height:3px;background:rgba(201,168,76,0.15);border-radius:3px;overflow:hidden;margin-top:10px;}
+  .spl-fill{height:100%;background:#C9A84C;border-radius:3px;animation:ldbar 1.4s ease forwards;}
+  @keyframes ldbar{from{width:0}to{width:100%}}
+  @keyframes pulse{from{transform:scale(1)}to{transform:scale(1.08)}}
+</style>
+<title>Famille Tamgue – Cotisations</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root{
+  --gold:#C9A84C;--gold-l:#E8C96A;--gold-p:#F5EDD5;
+  --dark:#1A1A18;--dark2:#252520;--dark3:#2F2F28;
+  --cream:#FAF8F2;--card:#fff;--inp:#fff;
+  --txt:#2A2A22;--mut:#6B6B5A;
+  --grn:#2D6A4F;--grn-b:#D8F3DC;
+  --red:#9B2226;--red-b:#FFDDD2;
+  --amb:#7B4F12;--amb-b:#FFEAA0;
+  --blu:#1A5276;--blu-b:#D6EAF8;
+  --brd:rgba(201,168,76,0.2);
+  --sh:0 2px 12px rgba(0,0,0,0.07);
+}
+[data-dark="1"]{
+  --cream:#18181A;--card:#23231F;--inp:#2A2A25;
+  --txt:#EDE8DC;--mut:#8A8570;--brd:rgba(201,168,76,0.15);
+  --grn:#5DBE8A;--grn-b:#1A3326;
+  --red:#E07070;--red-b:#3A1A1A;
+  --amb:#D4A84B;--amb-b:#3A2E10;
+  --gold-p:#2A2510;--sh:0 2px 12px rgba(0,0,0,0.3);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--txt);min-height:100vh;transition:background .3s,color .3s;}
+a{text-decoration:none;color:inherit;}
+
+/* ── PIN ── */
+#pin-screen{position:fixed;inset:0;background:var(--dark);z-index:9999;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;}
+#pin-screen h2{font-family:'DM Serif Display',serif;color:var(--gold-l);font-size:22px;}
+.pin-dots{display:flex;gap:14px;}
+.pdot{width:15px;height:15px;border-radius:50%;border:2px solid var(--gold);background:transparent;transition:background .2s;}
+.pdot.on{background:var(--gold);}
+.pin-pad{display:grid;grid-template-columns:repeat(3,62px);gap:10px;}
+.pbtn{width:62px;height:62px;border-radius:50%;border:1px solid rgba(201,168,76,0.3);background:rgba(201,168,76,0.08);color:var(--gold-l);font-size:20px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .15s;}
+.pbtn:active{transform:scale(.92);background:rgba(201,168,76,0.2);}
+.pin-err{color:#E07070;font-size:13px;min-height:18px;text-align:center;}
+
+/* ── LAYOUT ── */
+#app{display:none;min-height:100vh;padding-bottom:20px;}
+.topbar{background:var(--dark);padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between;}
+.topbar-title{font-family:'DM Serif Display',serif;color:var(--gold-l);font-size:17px;line-height:1.1;}
+.topbar-sub{font-size:10px;color:rgba(201,168,76,0.5);margin-top:1px;}
+.topbar-actions{display:flex;gap:6px;}
+.tbtn{background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.25);border-radius:8px;padding:6px 9px;color:var(--gold);font-size:13px;cursor:pointer;transition:all .15s;}
+.tbtn:hover{background:rgba(201,168,76,0.2);}
+
+/* PROGRESS TOP */
+.sticky-header{position:sticky;top:0;z-index:100;}
+.top-progress{height:3px;background:rgba(255,255,255,0.06);}
+.top-progress-fill{height:100%;background:linear-gradient(90deg,var(--grn),var(--gold));transition:width .5s;}
+
+/* ── BOTTOM NAV ── */
+.bnav{background:var(--dark2);border-bottom:1px solid var(--brd);display:flex;position:sticky;top:0;z-index:99;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.bnav::-webkit-scrollbar{display:none;}
+.bntab{flex:1;min-width:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px 8px;cursor:pointer;color:rgba(201,168,76,0.4);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.3px;border-bottom:2px solid transparent;transition:all .2s;}
+.bntab.active{color:var(--gold-l);border-bottom-color:var(--gold);background:rgba(201,168,76,0.06);}
+.bntab-icon{font-size:17px;margin-bottom:2px;display:block;}
+
+/* ── PAGES ── */
+.page{display:none;}.page.active{display:block;}
+.content{padding:14px;max-width:680px;margin:0 auto;}
+.section-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--mut);margin-bottom:10px;}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--brd);border-radius:14px;padding:15px;margin-bottom:12px;box-shadow:var(--sh);}
+.card-hd{display:flex;align-items:center;gap:8px;margin-bottom:13px;padding-bottom:10px;border-bottom:1px solid rgba(128,128,100,.08);}
+.card-ico{width:30px;height:30px;background:var(--gold-p);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.card-ttl{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--txt);}
+
+/* ── COTISATION CARD (accueil) ── */
+.cot-card{background:var(--card);border:1px solid var(--brd);border-radius:14px;padding:15px;margin-bottom:12px;box-shadow:var(--sh);cursor:pointer;transition:all .2s;}
+.cot-card:hover{border-color:var(--gold);transform:translateY(-1px);}
+.cot-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.cot-card-name{font-family:'DM Serif Display',serif;font-size:16px;color:var(--txt);}
+.cot-card-desc{font-size:11px;color:var(--mut);margin-top:2px;}
+.cot-card-badge{font-size:10px;padding:3px 9px;border-radius:20px;font-weight:600;}
+.badge-active{background:var(--grn-b);color:var(--grn);}
+.badge-archived{background:rgba(128,128,100,.15);color:var(--mut);}
+.cot-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;}
+.cot-stat{background:var(--cream);border-radius:8px;padding:8px 6px;text-align:center;}
+[data-dark="1"] .cot-stat{background:var(--dark3);}
+.cot-stat-num{font-weight:700;font-size:13px;color:var(--txt);}
+.cot-stat-lbl{font-size:9px;color:var(--mut);text-transform:uppercase;margin-top:1px;}
+.prog-wrap{height:7px;background:rgba(128,128,100,.12);border-radius:6px;overflow:hidden;margin:6px 0;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--grn),var(--gold));border-radius:6px;transition:width .5s;}
+.cot-card-footer{display:flex;justify-content:space-between;align-items:center;}
+.cot-card-members{font-size:11px;color:var(--mut);}
+.cot-card-pct{font-size:12px;font-weight:700;color:var(--gold);}
+.cot-card-actions{display:flex;gap:6px;margin-top:10px;}
+
+/* ── STATS GLOBALES ── */
+.glob-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.gstat{background:var(--dark);border-radius:12px;padding:13px 10px;text-align:center;}
+.gstat-num{font-family:'DM Serif Display',serif;font-size:18px;color:var(--gold-l);}
+.gstat-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:rgba(201,168,76,.5);margin-top:2px;}
+
+/* ── FORM ── */
+.fg{margin-bottom:10px;}
+label{font-size:11px;font-weight:500;color:var(--mut);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px;}
+input[type=text],input[type=number],input[type=tel],input[type=date],input[type=password],select,textarea{width:100%;height:42px;padding:0 12px;border:1px solid rgba(128,128,100,.2);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--txt);background:var(--inp);outline:none;transition:border-color .2s;appearance:none;}
+textarea{height:auto;padding:9px 12px;resize:vertical;}
+input:focus,select:focus,textarea:focus{border-color:var(--gold);}
+.fr2{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.fr3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 16px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s;}
+.btn:active{opacity:.85;}
+.btn-gold{background:var(--gold);color:#fff;width:100%;padding:13px;font-size:15px;border-radius:11px;}
+.btn-gold:hover{background:var(--gold-l);}
+.btn-outline{background:transparent;border:1px solid rgba(128,128,100,.25);color:var(--mut);}
+.btn-outline:hover{background:rgba(128,128,100,.07);}
+.btn-red{background:var(--red-b);color:var(--red);padding:6px 10px;font-size:12px;}
+.btn-grn{background:var(--grn-b);color:var(--grn);padding:6px 10px;font-size:12px;}
+.btn-wa{background:#25D366;color:#fff;width:100%;padding:11px;border-radius:10px;font-size:14px;}
+.btn-sm{padding:5px 10px;font-size:11px;border-radius:7px;}
+.btn-ico{width:34px;height:34px;border-radius:8px;padding:0;font-size:16px;}
+.btn-add{width:100%;margin-top:9px;padding:9px;border:1px dashed rgba(201,168,76,.4);background:transparent;border-radius:9px;color:var(--gold);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;}
+.btn-add:hover{background:var(--gold-p);}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid rgba(128,128,100,.1);}
+.tbl{width:100%;border-collapse:collapse;font-size:12px;min-width:400px;}
+.tbl th{padding:9px 7px;text-align:center;font-size:10px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.3px;background:rgba(128,128,100,.05);border-bottom:1px solid rgba(128,128,100,.1);white-space:nowrap;}
+.tbl th.l{text-align:left;}
+.tbl td{padding:8px 7px;text-align:center;border-bottom:1px solid rgba(128,128,100,.06);}
+.tbl td.l{text-align:left;font-weight:500;}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tfoot td{background:var(--gold-p);font-weight:700;font-size:11px;padding:9px 7px;}
+
+/* ── CELL PAIEMENT ── */
+.pc{width:36px;height:36px;border-radius:9px;border:1.5px solid rgba(128,128,100,.2);background:var(--card);cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;font-size:14px;transition:all .15s;position:relative;}
+.pc.ok{background:var(--grn-b);border-color:var(--grn);color:var(--grn);}
+.pc.part{background:var(--amb-b);border-color:var(--amb);color:var(--amb);}
+.pc.no{background:var(--red-b);border-color:var(--red);color:var(--red);opacity:.7;}
+.pc:hover{transform:scale(1.1);}
+.pc-sub{font-size:7px;line-height:1;margin-top:1px;}
+.note-btn{background:none;border:none;cursor:pointer;font-size:11px;opacity:.5;padding:1px 2px;}
+.note-btn:hover{opacity:1;}
+
+/* ── MEMBRES LIST ── */
+.mbr-item{display:flex;align-items:center;gap:7px;padding:9px 0;border-bottom:1px solid rgba(128,128,100,.07);}
+.mbr-item:last-child{border-bottom:none;}
+.av{width:34px;height:34px;border-radius:50%;background:var(--gold-p);display:inline-flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:14px;color:var(--amb);border:1px solid rgba(201,168,76,.3);flex-shrink:0;}
+.mbr-nom{font-weight:500;font-size:13px;}
+.mbr-sub{font-size:10px;color:var(--mut);margin-top:1px;}
+
+/* ── RAPPELS ── */
+.rap-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(128,128,100,.07);}
+.rap-item:last-child{border-bottom:none;}
+
+/* ── MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;display:none;align-items:flex-end;justify-content:center;}
+.overlay.open{display:flex;}
+.modal{background:var(--card);border-radius:18px 18px 0 0;padding:20px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:14px;color:var(--txt);display:flex;align-items:center;gap:8px;}
+.modal-btns{display:flex;gap:8px;margin-top:14px;}
+.modal-close{position:absolute;right:16px;top:16px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--mut);}
+
+/* ── SETTINGS ── */
+.set-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(128,128,100,.08);}
+.set-row:last-child{border-bottom:none;}
+.set-lbl{font-size:14px;color:var(--txt);}
+.set-sub{font-size:11px;color:var(--mut);margin-top:1px;}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.tgl-sl{position:absolute;inset:0;background:rgba(128,128,100,.25);border-radius:24px;cursor:pointer;transition:.3s;}
+.tgl-sl:before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:white;border-radius:50%;transition:.3s;}
+.toggle input:checked+.tgl-sl{background:var(--gold);}
+.toggle input:checked+.tgl-sl:before{transform:translateX(20px);}
+
+/* ── BADGE ── */
+.bdg{padding:4px 9px;border-radius:20px;font-size:11px;font-weight:600;border:none;white-space:nowrap;}
+.bdg-ok{background:var(--grn-b);color:var(--grn);}
+.bdg-no{background:var(--red-b);color:var(--red);}
+.bdg-wa{background:var(--amb-b);color:var(--amb);}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--dark);color:var(--gold-l);padding:10px 20px;border-radius:30px;font-size:13px;transition:transform .3s;z-index:800;border:1px solid var(--brd);white-space:nowrap;pointer-events:none;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:40px 20px;color:var(--mut);}
+.empty-ico{font-size:40px;margin-bottom:10px;}
+
+/* ── DETAIL COT ── */
+.detail-header{background:var(--dark);padding:16px;border-radius:12px;margin-bottom:12px;}
+.detail-name{font-family:'DM Serif Display',serif;color:var(--gold-l);font-size:20px;}
+.detail-desc{color:rgba(201,168,76,.5);font-size:12px;margin-top:3px;}
+.detail-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;}
+.ds{background:rgba(255,255,255,.06);border-radius:9px;padding:10px;text-align:center;}
+.ds-num{font-weight:700;font-size:14px;color:var(--gold-l);}
+.ds-lbl{font-size:9px;color:rgba(201,168,76,.5);text-transform:uppercase;margin-top:2px;}
+
+/* ── MEMBER MONTANT ROW ── */
+.mbr-cot-row{display:flex;align-items:center;gap:7px;padding:7px 0;border-bottom:1px solid rgba(128,128,100,.07);}
+.mbr-cot-row:last-child{border-bottom:none;}
+
+/* CONFIG COTISATION WIZARD */
+.wizard-step{display:none;}.wizard-step.active{display:block;}
+.wizard-tabs{display:flex;gap:0;margin-bottom:16px;border-radius:10px;overflow:hidden;border:1px solid rgba(128,128,100,.2);}
+.wtab{flex:1;padding:9px 4px;text-align:center;font-size:11px;cursor:pointer;background:var(--card);color:var(--mut);border:none;font-family:'DM Sans',sans-serif;transition:all .2s;}
+.wtab.active{background:var(--gold);color:white;font-weight:600;}
+
+/* HISTORIQUE PDF */
+.pdf-hist-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(128,128,100,.07);}
+.pdf-hist-item:last-child{border-bottom:none;}
+
+@media(max-width:400px){.fr2{grid-template-columns:1fr;}.glob-stats{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+
+<!-- PIN -->
+
+<!-- SPLASH SCREEN -->
+<div id="splash">
+  <div class="spl-ico">💰</div>
+  <div class="spl-title">Famille Tamgue<br><span style="font-size:16px;color:rgba(201,168,76,0.6)">Cotisations</span></div>
+  <div class="spl-sub">✦ Chargement ✦</div>
+  <div class="spl-bar"><div class="spl-fill"></div></div>
+</div>
+
+<div id="pin-screen">
+  <div style="color:var(--gold);font-size:10px;letter-spacing:4px;opacity:.7;">✦ FAMILLE TAMGUE ✦</div>
+  <h2>Code PIN</h2>
+  <div class="pin-dots"><div class="pdot" id="pd0"></div><div class="pdot" id="pd1"></div><div class="pdot" id="pd2"></div><div class="pdot" id="pd3"></div></div>
+  <div class="pin-err" id="pin-err"></div>
+  <div class="pin-pad">
+    <button class="pbtn" onclick="pp('1')">1</button><button class="pbtn" onclick="pp('2')">2</button><button class="pbtn" onclick="pp('3')">3</button>
+    <button class="pbtn" onclick="pp('4')">4</button><button class="pbtn" onclick="pp('5')">5</button><button class="pbtn" onclick="pp('6')">6</button>
+    <button class="pbtn" onclick="pp('7')">7</button><button class="pbtn" onclick="pp('8')">8</button><button class="pbtn" onclick="pp('9')">9</button>
+    <button class="pbtn" onclick="pp('del')">⌫</button><button class="pbtn" onclick="pp('0')">0</button><button class="pbtn" onclick="pp('ok')">OK</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="sticky-header">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="topbar-title">Famille Tamgue</div>
+      <div class="topbar-sub" id="topbar-sub">Gestion des cotisations</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="tbtn" onclick="toggleDark()" id="dark-btn">🌙</button>
+      <button class="tbtn" id="pin-btn" onclick="openPINModal()">🔒</button>
+    </div>
+  </div>
+  <div class="top-progress"><div class="top-progress-fill" id="top-prog" style="width:0%"></div></div>
+  </div><!-- /sticky-header -->
+
+  <!-- TOP NAV -->
+  <div class="bnav">
+    <div class="bntab active" onclick="showPage('accueil')"><span class="bntab-icon">🏠</span>Accueil</div>
+    <div class="bntab" onclick="showPage('membres')"><span class="bntab-icon">👥</span>Membres</div>
+    <div class="bntab" onclick="showPage('rappels')"><span class="bntab-icon">🔔</span>Rappels</div>
+    <div class="bntab" onclick="showPage('rapports')"><span class="bntab-icon">📄</span>Rapports</div>
+    <div class="bntab" onclick="showPage('params')"><span class="bntab-icon">⚙️</span>Params</div>
+  </div>
+
+  <!-- PAGES -->
+  <!-- 🏠 ACCUEIL -->
+  <div class="page active" id="page-accueil">
+    <div class="content">
+      <div class="glob-stats" id="glob-stats"></div>
+      <div class="section-title">Mes cotisations</div>
+      <div id="cot-cards"></div>
+      <button class="btn btn-gold" onclick="openNewCot()">➕ Nouvelle cotisation</button>
+    </div>
+  </div>
+
+  <!-- 💰 DETAIL COTISATION -->
+  <div class="page" id="page-detail">
+    <div class="content">
+      <button class="btn btn-outline btn-sm" onclick="showPage('accueil')" style="margin-bottom:12px;">← Retour</button>
+      <div id="detail-content"></div>
+    </div>
+  </div>
+
+  <!-- ⚙️ CONFIG COTISATION -->
+  <div class="page" id="page-config">
+    <div class="content">
+      <button class="btn btn-outline btn-sm" onclick="showPage('accueil')" style="margin-bottom:12px;">← Annuler</button>
+      <div class="card">
+        <div class="card-hd"><div class="card-ico">⚙️</div><div class="card-ttl" id="config-page-title">Nouvelle cotisation</div></div>
+        <div class="wizard-tabs">
+          <button class="wtab active" onclick="wTab(0,this)">1. Infos</button>
+          <button class="wtab" onclick="wTab(1,this)">2. Membres</button>
+          <button class="wtab" onclick="wTab(2,this)">3. Calendrier</button>
+        </div>
+        <!-- STEP 1 -->
+        <div class="wizard-step active" id="ws0">
+          <div class="fg"><label>Nom de la cotisation *</label><input type="text" id="cfg-nom" placeholder="Ex: Antivols, Construction..."/></div>
+          <div class="fg"><label>Description</label><textarea id="cfg-desc" rows="2" placeholder="Courte description..."></textarea></div>
+          <div class="fr2">
+            <div class="fg"><label>Objectif financier</label><input type="number" id="cfg-objectif" placeholder="2100000"/></div>
+            <div class="fg"><label>Devise</label>
+              <select id="cfg-devise"><option value="FCFA">FCFA</option><option value="EUR">EUR €</option><option value="USD">USD $</option><option value="GBP">GBP £</option></select>
+            </div>
+          </div>
+          <div class="fr2">
+            <div class="fg"><label>Date de début</label><input type="date" id="cfg-debut"/></div>
+            <div class="fg"><label>Date de fin</label><input type="date" id="cfg-fin"/></div>
+          </div>
+          <button class="btn btn-gold" onclick="wTab(1,null,true)">Suivant → Membres</button>
+        </div>
+        <!-- STEP 2 -->
+        <div class="wizard-step" id="ws1">
+          <div class="section-title" style="margin-bottom:8px;">Membres et montants personnalisés</div>
+          <div id="cfg-membres-list"></div>
+          <button class="btn-add" onclick="addCfgMbr()">+ Ajouter un membre</button>
+          <div style="margin-top:14px;display:flex;gap:8px;">
+            <button class="btn btn-outline" style="flex:1;" onclick="wTab(0,null)">← Retour</button>
+            <button class="btn btn-gold" style="flex:2;" onclick="wTab(2,null,true)">Suivant → Calendrier</button>
+          </div>
+        </div>
+        <!-- STEP 3 -->
+        <div class="wizard-step" id="ws2">
+          <div class="section-title" style="margin-bottom:8px;">Définir les mois de cotisation</div>
+          <div class="fg"><label>Nombre de mois</label>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;" id="nb-mois-btns">
+              <button class="btn btn-outline btn-sm" onclick="setNbM(1,this)">1</button>
+              <button class="btn btn-outline btn-sm" onclick="setNbM(2,this)">2</button>
+              <button class="btn btn-outline btn-sm active-nb" onclick="setNbM(3,this)" style="background:var(--gold);color:#fff;border-color:var(--gold);">3</button>
+              <button class="btn btn-outline btn-sm" onclick="setNbM(4,this)">4</button>
+              <button class="btn btn-outline btn-sm" onclick="setNbM(6,this)">6</button>
+              <button class="btn btn-outline btn-sm" onclick="setNbM(12,this)">12</button>
+              <button class="btn btn-outline btn-sm" onclick="setNbMCustom()">✏️ Autre</button>
+            </div>
+          </div>
+          <div id="cfg-mois-list" style="margin-top:10px;"></div>
+          <div style="margin-top:14px;display:flex;gap:8px;">
+            <button class="btn btn-outline" style="flex:1;" onclick="wTab(1,null)">← Retour</button>
+            <button class="btn btn-gold" style="flex:2;" onclick="saveCotisation()">✅ Enregistrer la cotisation</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 👥 MEMBRES -->
+  <div class="page" id="page-membres">
+    <div class="content">
+      <div class="section-title">Base de données membres</div>
+      <div id="mbr-global-list"></div>
+      <button class="btn-add" onclick="openAddMbrModal()">+ Ajouter un membre</button>
+    </div>
+  </div>
+
+  <!-- 🔔 RAPPELS -->
+  <div class="page" id="page-rappels">
+    <div class="content">
+      <div class="card">
+        <div class="card-hd"><div class="card-ico">📲</div><div class="card-ttl">Rappels WhatsApp</div></div>
+        <div class="fg"><label>Message personnalisé (optionnel)</label>
+          <textarea id="wa-msg-custom" rows="2" placeholder="Laisser vide pour message automatique..."></textarea>
+        </div>
+        <button class="btn btn-wa" onclick="envoyerTous()">📲 Envoyer à tous les non-payés</button>
+      </div>
+      <div class="section-title">Membres en retard</div>
+      <div id="rappels-list"></div>
+    </div>
+  </div>
+
+  <!-- 📄 RAPPORTS -->
+  <div class="page" id="page-rapports">
+    <div class="content">
+      <div class="section-title">Générer un rapport PDF</div>
+      <div class="card">
+        <div class="card-hd"><div class="card-ico">📄</div><div class="card-ttl">Sélectionner une cotisation</div></div>
+        <div class="fg"><select id="pdf-select" onchange="renderPDFPreview()"><option value="">-- Choisir --</option></select></div>
+        <div id="pdf-preview-wrap" style="display:none;">
+          <div id="pdf-preview"></div>
+          <div style="margin-top:12px;display:flex;flex-direction:column;gap:7px;">
+            <button class="btn btn-gold" onclick="genererPDF()">⬇ Télécharger le PDF</button>
+            <button class="btn btn-outline" style="width:100%;" onclick="sauvegarderRapport()">💾 Archiver dans l'historique</button>
+          </div>
+        </div>
+      </div>
+      <div class="section-title">Historique des rapports</div>
+      <div class="card"><div id="pdf-hist-list"></div></div>
+    </div>
+  </div>
+
+  <!-- ⚙️ PARAMETRES -->
+  <div class="page" id="page-params">
+    <div class="content">
+      <div class="card">
+        <div class="card-hd"><div class="card-ico">🏠</div><div class="card-ttl">Général</div></div>
+        <div class="fg"><label>Nom de la famille / groupe</label><input type="text" id="param-famille" placeholder="Famille Tamgue" onchange="saveParams()"/></div>
+        <div class="fg"><label>Devise par défaut</label>
+          <select id="param-devise" onchange="saveParams()">
+            <option value="FCFA">FCFA</option><option value="EUR">EUR €</option><option value="USD">USD $</option><option value="GBP">GBP £</option>
+          </select>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div class="card-ico">🔒</div><div class="card-ttl">Sécurité – Code PIN</div></div>
+        <div class="set-row">
+          <div><div class="set-lbl">Activer le PIN</div><div class="set-sub">Demandé à chaque ouverture</div></div>
+          <label class="toggle"><input type="checkbox" id="pin-toggle" onchange="togglePINSetting()"><div class="tgl-sl"></div></label>
+        </div>
+        <div id="pin-setup-wrap" style="display:none;margin-top:10px;">
+          <div class="fr2">
+            <div class="fg"><label>Nouveau PIN (4 chiffres)</label><input type="password" id="new-pin" maxlength="4" placeholder="••••" style="text-align:center;font-size:20px;letter-spacing:8px;"/></div>
+            <div class="fg"><label>Confirmer</label><input type="password" id="cnf-pin" maxlength="4" placeholder="••••" style="text-align:center;font-size:20px;letter-spacing:8px;"/></div>
+          </div>
+          <button class="btn btn-gold" onclick="savePIN()" style="margin-top:4px;">🔐 Activer le PIN</button>
+          <button id="remove-pin-btn" class="btn btn-outline" onclick="removePIN()" style="width:100%;margin-top:6px;color:var(--red);border-color:var(--red);display:none;">Désactiver le PIN</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div class="card-ico">🌙</div><div class="card-ttl">Affichage</div></div>
+        <div class="set-row">
+          <div><div class="set-lbl">Mode sombre</div><div class="set-sub">Thème noir pour la nuit</div></div>
+          <label class="toggle"><input type="checkbox" id="dark-toggle" onchange="toggleDarkSetting()"><div class="tgl-sl"></div></label>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div class="card-ico">💾</div><div class="card-ttl">Sauvegarde</div></div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button class="btn btn-gold" onclick="exportData()">⬇ Exporter toutes les données (.json)</button>
+          <label class="btn btn-outline" style="cursor:pointer;">
+            ⬆ Importer des données
+            <input type="file" accept=".json" onchange="importData(event)" style="display:none"/>
+          </label>
+          <div style="font-size:11px;color:var(--mut);text-align:center;">Exporter = sauvegarder · Importer = restaurer sur un autre appareil</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div class="card-ico">⚠️</div><div class="card-ttl">Zone dangereuse</div></div>
+        <button class="btn btn-outline" style="width:100%;color:var(--red);border-color:var(--red);" onclick="resetAll()">🗑 Réinitialiser toutes les données</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODALS -->
+<!-- Modal PIN setup (depuis topbar) -->
+<div class="overlay" id="pin-modal">
+  <div class="modal" style="border-radius:18px 18px 0 0;">
+    <div class="modal-title">🔒 Code PIN</div>
+    <div id="pin-modal-status" style="font-size:13px;color:var(--mut);margin-bottom:12px;"></div>
+    <div class="fr2">
+      <div class="fg"><label>Nouveau PIN</label><input type="password" id="pm-pin" maxlength="4" placeholder="••••" style="text-align:center;font-size:20px;letter-spacing:8px;"/></div>
+      <div class="fg"><label>Confirmer</label><input type="password" id="pm-cnf" maxlength="4" placeholder="••••" style="text-align:center;font-size:20px;letter-spacing:8px;"/></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" style="flex:1;" onclick="closeModal('pin-modal')">Annuler</button>
+      <button class="btn btn-gold" style="flex:2;" onclick="savePINFromModal()">🔐 Activer</button>
+    </div>
+    <button id="pm-remove" onclick="removePINFromModal()" style="display:none;width:100%;margin-top:8px;background:none;border:none;color:var(--red);font-size:12px;cursor:pointer;text-decoration:underline;font-family:'DM Sans',sans-serif;">Désactiver le PIN</button>
+  </div>
+</div>
+
+<!-- Modal ajout membre global -->
+<div class="overlay" id="add-mbr-modal">
+  <div class="modal">
+    <div class="modal-title">👤 <span id="mbr-modal-title">Nouveau membre</span></div>
+    <div class="fr2">
+      <div class="fg"><label>Prénom *</label><input type="text" id="mbr-prenom" placeholder="Carlos"/></div>
+      <div class="fg"><label>Nom</label><input type="text" id="mbr-nom" placeholder="Tamgue"/></div>
+    </div>
+    <div class="fg"><label>Téléphone / WhatsApp</label><input type="tel" id="mbr-tel" placeholder="+243812345678"/></div>
+    <div class="fg"><label>Email (optionnel)</label><input type="text" id="mbr-email" placeholder="email@..."/></div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" style="flex:1;" onclick="closeModal('add-mbr-modal')">Annuler</button>
+      <button class="btn btn-gold" style="flex:2;" onclick="saveMbrModal()">✅ Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal paiement partiel / note -->
+<div class="overlay" id="pay-modal">
+  <div class="modal">
+    <div class="modal-title">💳 <span id="pay-modal-title">Enregistrer le paiement</span></div>
+    <div class="fg"><label>Montant prevu ce mois</label>
+      <div style="display:flex;gap:7px;align-items:center;">
+        <input type="number" id="pay-attendu" style="flex:1;" oninput="updatePayReste()"/>
+        <button onclick="saveNewMontant()" style="background:var(--amb-b);color:var(--amb);border:1px solid var(--amb);border-radius:8px;padding:6px 10px;font-size:11px;cursor:pointer;white-space:nowrap;font-family:DM Sans,sans-serif;">✏️ Corriger montant</button>
+      </div>
+      <div style="font-size:10px;color:var(--mut);margin-top:3px;">Modifier si le montant prevu etait errone</div>
+    </div>
+    <div class="fg"><label>Montant verse *</label><input type="number" id="pay-verse" placeholder="Ex: 50000" oninput="updatePayReste()"/></div>
+    <div class="fg"><label>Reste a payer</label><input type="number" id="pay-reste" readonly style="background:rgba(128,128,100,.1);"/></div>
+    <div class="fg"><label>Remarque / Observation</label><textarea id="pay-note" rows="2" placeholder="Ex: Paye en especes, promet de payer le reste vendredi, refuse de payer..."></textarea></div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" style="flex:1;" onclick="closeModal('pay-modal')">Annuler</button>
+      <button class="btn btn-grn btn-sm" style="flex:1;padding:10px;" onclick="savePaiement('ok')">✅ Payé intégral</button>
+      <button class="btn btn-gold" style="flex:2;" onclick="savePaiement('part')">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal confirmation suppression -->
+<div class="overlay" id="confirm-modal">
+  <div class="modal">
+    <div class="modal-title">⚠️ Confirmation</div>
+    <div id="confirm-text" style="font-size:14px;color:var(--mut);margin-bottom:16px;"></div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" style="flex:1;" onclick="closeModal('confirm-modal')">Annuler</button>
+      <button class="btn btn-red" style="flex:2;padding:10px;" id="confirm-ok-btn">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════
+// DONNÉES
+// ═══════════════════════════════════════════
+const MOIS_NOMS = ['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
+
+function ld(k,def){try{const v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch(e){return def;}}
+function sv(k,v){localStorage.setItem(k,JSON.stringify(v));}
+
+let membres   = ld('mbr2',[
+  {id:1,prenom:'Carlos',nom:'',tel:'',email:''},
+  {id:2,prenom:'Yannick',nom:'',tel:'',email:''},
+  {id:3,prenom:'Hermann',nom:'',tel:'',email:''},
+  {id:4,prenom:'Ruben',nom:'',tel:'',email:''},
+  {id:5,prenom:'Romario',nom:'',tel:'',email:''},
+  {id:6,prenom:'Maman',nom:'',tel:'',email:''},
+  {id:7,prenom:'Merveille',nom:'',tel:'',email:''},
+]);
+// cotisations[]: {id, nom, desc, objectif, devise, debut, fin, statut, moisLabels[], moisCount, membres:[{mbrId,montant}], paiements:{mbrId:{moisIdx:{verse,note,date}}}}
+let cotisations = ld('cots2',[]);
+let rapportsHist = ld('rphist',[]);
+let appCfg = ld('appcfg2',{dark:false,famille:'Famille Tamgue',devise:'FCFA'});
+let nextMbrId = Math.max(0,...membres.map(m=>m.id))+1;
+let nextCotId = Math.max(0,...cotisations.map(c=>c.id),0)+1;
+
+// état temporaire config
+let cfgState = {cotId:null, nbMois:3, moisLabels:[], moisPrix:[], cfgMbrs:[]};
+let payCtx = null; // {cotId, mbrId, mi}
+let editMbrId = null;
+let currentCotId = null;
+
+function saveAll(){
+  sv('mbr2',membres);
+  sv('cots2',cotisations);
+  sv('rphist',rapportsHist);
+  sv('appcfg2',appCfg);
+}
+function getCot(id){return cotisations.find(c=>c.id===id);}
+function getMbr(id){return membres.find(m=>m.id===id);}
+function mbrName(id){const m=getMbr(id);return m?m.prenom+(m.nom?' '+m.nom:''):'?';}
+function fmtNum(n){return Math.round(n||0).toLocaleString('fr-FR');}
+function fmtPDF(n){var s=String(Math.round(n||0));var r='';for(var i=0;i<s.length;i++){r+=s[i];if((s.length-i-1)%3===0&&i<s.length-1)r+=' ';}return r;}
+function getDevise(cotId){const c=getCot(cotId);return c?c.devise:(appCfg.devise||'FCFA');}
+
+// ═══════════════════════════════════════════
+// PIN
+// ═══════════════════════════════════════════
+let pinBuf='';
+function checkPIN(){
+  const stored=localStorage.getItem('pin');
+  if(!stored){unlockApp();return;}
+  document.getElementById('pin-screen').style.display='flex';
+  document.getElementById('app').style.display='none';
+}
+function pp(v){
+  const err=document.getElementById('pin-err');
+  if(v==='del'){pinBuf=pinBuf.slice(0,-1);}
+  else if(v==='ok'||pinBuf.length>=4){
+    if(v!=='del'&&v!=='ok') pinBuf+=v;
+    const stored=localStorage.getItem('pin');
+    if(pinBuf===stored){unlockApp();}
+    else{err.textContent='Code incorrect';pinBuf='';setTimeout(()=>err.textContent='',1500);}
+    updPinDots();return;
+  } else {pinBuf+=v;}
+  updPinDots();
+}
+function updPinDots(){for(let i=0;i<4;i++)document.getElementById('pd'+i).classList.toggle('on',i<pinBuf.length);}
+function unlockApp(){document.getElementById('pin-screen').style.display='none';document.getElementById('app').style.display='block';}
+function openPINModal(){
+  const stored=localStorage.getItem('pin');
+  document.getElementById('pin-modal-status').textContent=stored?'Un PIN est actif. Tu peux le modifier ci-dessous.':'Crée un code PIN de 4 chiffres.';
+  document.getElementById('pm-remove').style.display=stored?'block':'none';
+  document.getElementById('pm-pin').value='';document.getElementById('pm-cnf').value='';
+  openModal('pin-modal');
+}
+function savePINFromModal(){
+  const p=document.getElementById('pm-pin').value;
+  const c=document.getElementById('pm-cnf').value;
+  if(!/^\d{4}$/.test(p)){toast('PIN = 4 chiffres exactement');return;}
+  if(p!==c){toast('Les deux PINs ne correspondent pas');return;}
+  localStorage.setItem('pin',p);
+  document.getElementById('pin-btn').textContent='🔐';
+  closeModal('pin-modal');toast('PIN active !');
+}
+function removePINFromModal(){
+  if(!confirm('Desactiver le PIN ?'))return;
+  localStorage.removeItem('pin');
+  document.getElementById('pin-btn').textContent='🔒';
+  closeModal('pin-modal');toast('PIN desactive');
+}
+function savePIN(){
+  const p=document.getElementById('new-pin').value;
+  const c=document.getElementById('cnf-pin').value;
+  if(!/^\d{4}$/.test(p)){toast('4 chiffres requis');return;}
+  if(p!==c){toast('PINs differents');return;}
+  localStorage.setItem('pin',p);
+  document.getElementById('pin-btn').textContent='🔐';
+  document.getElementById('remove-pin-btn').style.display='block';
+  toast('PIN active !');
+}
+function removePIN(){
+  if(!confirm('Desactiver ?'))return;
+  localStorage.removeItem('pin');
+  document.getElementById('pin-btn').textContent='🔒';
+  document.getElementById('remove-pin-btn').style.display='none';
+  toast('PIN desactive');
+}
+function togglePINSetting(){
+  const on=document.getElementById('pin-toggle').checked;
+  document.getElementById('pin-setup-wrap').style.display=on?'block':'none';
+}
+
+// ═══════════════════════════════════════════
+// DARK MODE
+// ═══════════════════════════════════════════
+function applyDark(on){
+  document.documentElement.setAttribute('data-dark',on?'1':'0');
+  document.getElementById('dark-btn').textContent=on?'☀️':'🌙';
+  const dt=document.getElementById('dark-toggle');if(dt)dt.checked=on;
+  appCfg.dark=on;saveAll();
+}
+function toggleDark(){applyDark(!appCfg.dark);}
+function toggleDarkSetting(){applyDark(document.getElementById('dark-toggle').checked);}
+
+// ═══════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════
+const PAGE_MAP={accueil:0,membres:1,rappels:2,rapports:3,params:4};
+function showPage(id,skipNav){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(!skipNav){
+    document.querySelectorAll('.bntab').forEach(t=>t.classList.remove('active'));
+    if(PAGE_MAP[id]!==undefined) document.querySelectorAll('.bntab')[PAGE_MAP[id]].classList.add('active');
+  }
+  // update topbar
+  const titles={accueil:'Famille Tamgue',membres:'Membres',rappels:'Rappels',rapports:'Rapports PDF',params:'Parametres',detail:'Cotisation',config:'Configuration'};
+  document.getElementById('topbar-title').textContent=appCfg.famille||'Famille Tamgue';
+  document.getElementById('topbar-sub').textContent=titles[id]||'';
+  // render
+  if(id==='accueil') renderAccueil();
+  if(id==='membres') renderMembresPage();
+  if(id==='rappels') renderRappels();
+  if(id==='rapports') renderRapportsPage();
+  if(id==='params') renderParams();
+}
+
+// ═══════════════════════════════════════════
+// ACCUEIL
+// ═══════════════════════════════════════════
+function renderAccueil(){
+  // Stats globales
+  const total=cotisations.filter(c=>c.statut!=='archive').length;
+  let gAtt=0,gRec=0;
+  cotisations.forEach(c=>{
+    const {att,rec}=calcCotTotaux(c.id);
+    gAtt+=att;gRec+=rec;
+  });
+  const gReste=gAtt-gRec;
+  document.getElementById('glob-stats').innerHTML=`
+    <div class="gstat"><div class="gstat-num">${cotisations.length}</div><div class="gstat-lbl">Cotisations</div></div>
+    <div class="gstat"><div class="gstat-num">${membres.length}</div><div class="gstat-lbl">Membres</div></div>
+    <div class="gstat"><div class="gstat-num">${fmtNum(gRec)}</div><div class="gstat-lbl">Total recu</div></div>
+    <div class="gstat"><div class="gstat-num">${fmtNum(gReste)}</div><div class="gstat-lbl">Total reste</div></div>
+  `;
+  // Progression globale
+  const pct=gAtt?Math.round(gRec/gAtt*100):0;
+  document.getElementById('top-prog').style.width=pct+'%';
+
+  // Cartes cotisations
+  let html='';
+  if(!cotisations.length){
+    html=`<div class="empty"><div class="empty-ico">💰</div><div>Aucune cotisation.<br>Cree ta premiere cotisation ci-dessous.</div></div>`;
+  }
+  cotisations.forEach(c=>{
+    const {att,rec,reste}=calcCotTotaux(c.id);
+    const pct2=att?Math.round(rec/att*100):0;
+    const devise=c.devise||'FCFA';
+    const isArchive=c.statut==='archive';
+    html+=`<div class="cot-card" onclick="openDetail(${c.id})">
+      <div class="cot-card-top">
+        <div>
+          <div class="cot-card-name">${c.nom}</div>
+          ${c.desc?`<div class="cot-card-desc">${c.desc}</div>`:''}
+        </div>
+        <span class="cot-card-badge ${isArchive?'badge-archived':'badge-active'}">${isArchive?'Archive':'Actif'}</span>
+      </div>
+      <div class="cot-stats">
+        <div class="cot-stat"><div class="cot-stat-num" style="color:var(--grn)">${fmtNum(rec)}</div><div class="cot-stat-lbl">Recu (${devise})</div></div>
+        <div class="cot-stat"><div class="cot-stat-num" style="color:var(--red)">${fmtNum(reste)}</div><div class="cot-stat-lbl">Reste (${devise})</div></div>
+        <div class="cot-stat"><div class="cot-stat-num">${c.membres?c.membres.length:0}</div><div class="cot-stat-lbl">Membres</div></div>
+      </div>
+      ${c.objectif?`<div style="font-size:10px;color:var(--mut);margin-bottom:4px;">Objectif : ${fmtNum(c.objectif)} ${devise}</div>`:''}
+      <div class="prog-wrap"><div class="prog-fill" style="width:${pct2}%"></div></div>
+      <div class="cot-card-footer">
+        <div class="cot-card-members">📅 ${c.moisLabels?c.moisLabels.length:0} mois</div>
+        <div class="cot-card-pct">${pct2}%</div>
+      </div>
+      <div class="cot-card-actions" onclick="event.stopPropagation()">
+        <button class="btn btn-outline btn-sm" onclick="openEditCot(${c.id})">✏️ Modifier</button>
+        <button class="btn btn-outline btn-sm" onclick="toggleArchive(${c.id})">${isArchive?'♻️ Restaurer':'📦 Archiver'}</button>
+        <button class="btn btn-red btn-sm" onclick="deleteCot(${c.id})">🗑 Supprimer</button>
+      </div>
+    </div>`;
+  });
+  document.getElementById('cot-cards').innerHTML=html;
+}
+
+function calcCotTotaux(cotId){
+  const c=getCot(cotId);if(!c)return{att:0,rec:0,reste:0};
+  let att=0,rec=0;
+  (c.membres||[]).forEach(cm=>{
+    for(let mi=0;mi<(c.moisLabels||[]).length;mi++){
+      att+=cm.montant||0;
+      const p=c.paiements&&c.paiements[cm.mbrId]&&c.paiements[cm.mbrId][mi];
+      if(p) rec+=p.verse||0;
+    }
+  });
+  return{att,rec,reste:att-rec};
+}
+
+// ═══════════════════════════════════════════
+// DETAIL COTISATION
+// ═══════════════════════════════════════════
+function openDetail(cotId){
+  currentCotId=cotId;
+  renderDetail();
+  showPage('detail',true);
+  document.querySelectorAll('.bntab').forEach(t=>t.classList.remove('active'));
+}
+
+function renderDetail(){
+  const c=getCot(currentCotId);if(!c){showPage('accueil');return;}
+  const {att,rec,reste}=calcCotTotaux(currentCotId);
+  const devise=c.devise||'FCFA';
+  const pct=att?Math.round(rec/att*100):0;
+  const nb=c.moisLabels?c.moisLabels.length:0;
+
+  // Header
+  let html=`<div class="detail-header">
+    <div class="detail-name">${c.nom}</div>
+    ${c.desc?`<div class="detail-desc">${c.desc}</div>`:''}
+    <div class="detail-stats">
+      <div class="ds"><div class="ds-num">${fmtNum(rec)}</div><div class="ds-lbl">Recu ${devise}</div></div>
+      <div class="ds"><div class="ds-num">${fmtNum(reste)}</div><div class="ds-lbl">Reste ${devise}</div></div>
+      <div class="ds"><div class="ds-num">${pct}%</div><div class="ds-lbl">Progression</div></div>
+    </div>
+    <div class="prog-wrap" style="margin-top:10px;"><div class="prog-fill" style="width:${pct}%"></div></div>
+    ${c.objectif?`<div style="font-size:10px;color:rgba(201,168,76,.5);margin-top:4px;text-align:center;">Objectif : ${fmtNum(c.objectif)} ${devise}</div>`:''}
+  </div>`;
+
+  // Table paiements
+  html+=`<div class="card" style="padding:10px;">`;
+  html+=`<div class="tbl-wrap"><table class="tbl"><thead><tr>
+    <th class="l">Membre</th>`;
+  (c.moisLabels||[]).forEach((ml,mi)=>{
+    html+=`<th><div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
+      <span style="font-size:10px">${ml}</span>
+      <span style="font-size:9px;color:var(--gold)">${fmtNum(getMbrMontantInCot(currentCotId,null,mi)>0?'-':'')}</span>
+    </div></th>`;
+  });
+  html+=`<th>Total</th><th>Rappel</th></tr></thead><tbody>`;
+
+  (c.membres||[]).forEach(cm=>{
+    const m=getMbr(cm.mbrId);if(!m)return;
+    let mTotal=0;
+    let row=`<tr><td class="l"><div class="mbr-nom">${mbrName(cm.mbrId)}</div><div class="mbr-sub">${fmtNum(cm.montant)} ${devise}/mois</div></td>`;
+    for(let mi=0;mi<nb;mi++){
+      const p=(c.paiements||{})[cm.mbrId]&&c.paiements[cm.mbrId][mi];
+      const verse=p?p.verse||0:0;
+      const att2=cm.montant||0;
+      mTotal+=verse;
+      let cls='no',ico='✗',sub='';
+      if(verse>=att2&&verse>0){cls='ok';ico='✓';sub=p.date||'';}
+      else if(verse>0&&verse<att2){cls='part';ico='~';sub=fmtNum(verse);}
+      const hasNote=p&&p.note;
+      row+=`<td><div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
+        <button class="pc ${cls}" onclick="openPayModal(${currentCotId},${cm.mbrId},${mi})" title="${hasNote?'Note: '+(p.note||''):'Cliquer pour enregistrer'}">
+          ${ico}${sub?`<span class="pc-sub">${sub}</span>`:''}
+        </button>
+        <button class="note-btn" onclick="openPayModal(${currentCotId},${cm.mbrId},${mi})" title="${hasNote?p.note:'Ajouter note'}">${hasNote?'📝':'💬'}</button>
+      </div></td>`;
+    }
+    const mReste=(cm.montant||0)*nb-mTotal;
+    row+=`<td><div style="font-weight:700;font-size:11px;color:var(--grn)">${fmtNum(mTotal)}</div>${mReste>0?`<div style="font-size:9px;color:var(--red)">-${fmtNum(mReste)}</div>`:''}</td>`;
+    // Rappel inline
+    row+=`<td><button class="btn btn-sm" style="background:rgba(37,211,102,.12);border:1px solid rgba(37,211,102,.3);color:#1a8a45;font-size:11px;" onclick="envoyerRappelMbr(${currentCotId},${cm.mbrId})">📲</button></td>`;
+    row+=`</tr>`;
+    html+=row;
+  });
+
+  // Footer totaux
+  html+=`<tr style=""><td class="l" style="font-weight:700;font-size:11px;color:var(--mut)">TOTAL</td>`;
+  for(let mi=0;mi<nb;mi++){
+    let t=0;
+    (c.membres||[]).forEach(cm=>{const p=(c.paiements||{})[cm.mbrId]&&c.paiements[cm.mbrId][mi];if(p)t+=p.verse||0;});
+    html+=`<td style="font-weight:700;font-size:11px;color:var(--grn)">${fmtNum(t)}</td>`;
+  }
+  html+=`<td style="font-weight:700;font-size:11px;color:var(--grn)">${fmtNum(rec)}</td><td></td></tr>`;
+  html+=`</tbody></table></div>`;
+  html+=`</div>`;
+
+  // Remarques / notes
+  let notesHtml='';
+  (c.membres||[]).forEach(cm=>{
+    for(let mi=0;mi<nb;mi++){
+      const p=(c.paiements||{})[cm.mbrId]&&c.paiements[cm.mbrId][mi];
+      if(p&&p.note){
+        notesHtml+=`<div style="padding:6px 0;border-bottom:1px solid rgba(128,128,100,.07);">
+          <span style="font-weight:600;font-size:12px">${mbrName(cm.mbrId)}</span>
+          <span style="font-size:11px;color:var(--mut)"> – ${c.moisLabels[mi]||'M'+(mi+1)}</span>
+          <div style="font-size:12px;color:var(--mut);margin-top:2px;">📝 ${p.note}</div>
+        </div>`;
+      }
+    }
+  });
+  if(notesHtml){
+    html+=`<div class="card"><div class="card-hd"><div class="card-ico">📝</div><div class="card-ttl">Remarques</div></div>${notesHtml}</div>`;
+  }
+
+  document.getElementById('detail-content').innerHTML=html;
+}
+
+function getMbrMontantInCot(cotId,mbrId,mi){
+  const c=getCot(cotId);if(!c)return 0;
+  if(mbrId){const cm=(c.membres||[]).find(m=>m.mbrId===mbrId);return cm?cm.montant||0:0;}
+  return 0;
+}
+
+// ═══════════════════════════════════════════
+// MODAL PAIEMENT
+// ═══════════════════════════════════════════
+function openPayModal(cotId,mbrId,mi){
+  const c=getCot(cotId);if(!c)return;
+  const cm=(c.membres||[]).find(m=>m.mbrId===mbrId);if(!cm)return;
+  payCtx={cotId,mbrId,mi};
+  const p=(c.paiements||{})[mbrId]&&c.paiements[mbrId][mi];
+  const att=cm.montant||0;
+  const verse=p?p.verse||0:0;
+  const devise=c.devise||'FCFA';
+  document.getElementById('pay-modal-title').textContent=`${mbrName(mbrId)} – ${c.moisLabels[mi]||'M'+(mi+1)}`;
+  document.getElementById('pay-attendu').value=att;
+  document.getElementById('pay-verse').value=verse||'';
+  document.getElementById('pay-reste').value=Math.max(0,att-verse);
+  document.getElementById('pay-note').value=p&&p.note||'';
+  openModal('pay-modal');
+}
+function updatePayReste(){
+  const att=parseFloat(document.getElementById('pay-attendu').value)||0;
+  const v=parseFloat(document.getElementById('pay-verse').value)||0;
+  document.getElementById('pay-reste').value=Math.max(0,att-v);
+}
+function saveNewMontant(){
+  if(!payCtx)return;
+  const {cotId,mbrId}=payCtx;
+  const c=getCot(cotId);if(!c)return;
+  const newAtt=parseFloat(document.getElementById('pay-attendu').value)||0;
+  if(!newAtt){toast('Montant invalide');return;}
+  const cm=(c.membres||[]).find(m=>m.mbrId===mbrId);
+  if(!cm){toast('Membre introuvable');return;}
+  const old=cm.montant;
+  cm.montant=newAtt;
+  saveAll();
+  updatePayReste();
+  toast('Montant corrige : '+fmtNum(old)+' -> '+fmtNum(newAtt));
+}
+function savePaiement(type){
+  if(!payCtx)return;
+  const {cotId,mbrId,mi}=payCtx;
+  const c=getCot(cotId);if(!c)return;
+  if(!c.paiements)c.paiements={};
+  if(!c.paiements[mbrId])c.paiements[mbrId]={};
+  const att=parseFloat(document.getElementById('pay-attendu').value)||0;
+  let verse;
+  if(type==='ok'){verse=att;}
+  else{verse=parseFloat(document.getElementById('pay-verse').value)||0;}
+  const note=document.getElementById('pay-note').value.trim();
+  c.paiements[mbrId][mi]={verse,note,date:new Date().toLocaleDateString('fr-FR')};
+  saveAll();
+  closeModal('pay-modal');
+  renderDetail();
+  toast(type==='ok'?'Paiement complet enregistre !':'Paiement partiel : '+fmtNum(verse)+' '+getDevise(cotId));
+}
+
+// ═══════════════════════════════════════════
+// CONFIG COTISATION (wizard)
+// ═══════════════════════════════════════════
+function openNewCot(){
+  cfgState={cotId:null,nbMois:3,moisLabels:['Janvier','Fevrier','Mars'],moisPrix:[],cfgMbrs:JSON.parse(JSON.stringify(membres.map(m=>({mbrId:m.id,montant:20000,inclus:true}))))};
+  document.getElementById('config-page-title').textContent='Nouvelle cotisation';
+  document.getElementById('cfg-nom').value='';
+  document.getElementById('cfg-desc').value='';
+  document.getElementById('cfg-objectif').value='';
+  document.getElementById('cfg-devise').value=appCfg.devise||'FCFA';
+  document.getElementById('cfg-debut').value='';
+  document.getElementById('cfg-fin').value='';
+  wTab(0,document.querySelectorAll('.wtab')[0]);
+  renderCfgMbrs();
+  renderCfgMois();
+  showPage('config',true);
+}
+function openEditCot(cotId){
+  const c=getCot(cotId);if(!c)return;
+  cfgState={
+    cotId,
+    nbMois:c.moisLabels?c.moisLabels.length:3,
+    moisLabels:c.moisLabels?[...c.moisLabels]:['Janvier','Fevrier','Mars'],
+    moisPrix:[],
+    cfgMbrs:JSON.parse(JSON.stringify(
+      membres.map(m=>{
+        const cm=(c.membres||[]).find(x=>x.mbrId===m.id);
+        return{mbrId:m.id,montant:cm?cm.montant:20000,inclus:!!cm};
+      })
+    )),
+  };
+  document.getElementById('config-page-title').textContent='Modifier : '+c.nom;
+  document.getElementById('cfg-nom').value=c.nom||'';
+  document.getElementById('cfg-desc').value=c.desc||'';
+  document.getElementById('cfg-objectif').value=c.objectif||'';
+  document.getElementById('cfg-devise').value=c.devise||'FCFA';
+  document.getElementById('cfg-debut').value=c.debut||'';
+  document.getElementById('cfg-fin').value=c.fin||'';
+  wTab(0,document.querySelectorAll('.wtab')[0]);
+  renderCfgMbrs();
+  renderCfgMois();
+  showPage('config',true);
+}
+
+function wTab(idx,btn,validate){
+  if(validate&&idx===1){
+    if(!document.getElementById('cfg-nom').value.trim()){toast('Entre le nom de la cotisation');return;}
+  }
+  document.querySelectorAll('.wizard-step').forEach((s,i)=>s.classList.toggle('active',i===idx));
+  document.querySelectorAll('.wtab').forEach((t,i)=>t.classList.toggle('active',i===idx));
+}
+
+function setNbM(n,btn){
+  cfgState.nbMois=n;
+  while(cfgState.moisLabels.length<n)cfgState.moisLabels.push(MOIS_NOMS[cfgState.moisLabels.length%12]);
+  document.querySelectorAll('#nb-mois-btns button').forEach(b=>{b.style.background='';b.style.color='';b.style.borderColor='';});
+  if(btn){btn.style.background='var(--gold)';btn.style.color='#fff';btn.style.borderColor='var(--gold)';}
+  renderCfgMois();
+}
+function setNbMCustom(){
+  const n=parseInt(prompt('Nombre de mois ?','3'));
+  if(!n||n<1||n>36)return;
+  cfgState.nbMois=n;
+  while(cfgState.moisLabels.length<n)cfgState.moisLabels.push(MOIS_NOMS[cfgState.moisLabels.length%12]);
+  renderCfgMois();
+}
+
+function renderCfgMbrs(){
+  let html='';
+  cfgState.cfgMbrs.forEach((cm,i)=>{
+    const m=getMbr(cm.mbrId);if(!m)return;
+    html+=`<div class="mbr-cot-row">
+      <input type="checkbox" id="cm-${i}" ${cm.inclus?'checked':''} onchange="cfgState.cfgMbrs[${i}].inclus=this.checked" style="width:18px;height:18px;accent-color:var(--gold);"/>
+      <div class="av" style="width:28px;height:28px;font-size:12px;">${m.prenom.charAt(0)}</div>
+      <div style="flex:1;font-size:13px;font-weight:500">${mbrName(cm.mbrId)}</div>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <input type="number" value="${cm.montant}" onchange="cfgState.cfgMbrs[${i}].montant=parseInt(this.value)||0"
+          style="width:110px;height:36px;font-size:13px;" placeholder="Montant"/>
+        <span style="font-size:11px;color:var(--mut);">${document.getElementById('cfg-devise')?.value||'FCFA'}</span>
+      </div>
+    </div>`;
+  });
+  document.getElementById('cfg-membres-list').innerHTML=html||'<div style="color:var(--mut);font-size:13px;text-align:center;padding:20px;">Ajoute des membres dans l\'onglet Membres d\'abord.</div>';
+}
+function addCfgMbr(){
+  const nom=prompt('Prenom du nouveau membre :','');
+  if(!nom||!nom.trim())return;
+  const m={id:nextMbrId++,prenom:nom.trim(),nom:'',tel:'',email:''};
+  membres.push(m);
+  cfgState.cfgMbrs.push({mbrId:m.id,montant:20000,inclus:true});
+  saveAll();renderCfgMbrs();toast('Membre ajoute : '+m.prenom);
+}
+
+function renderCfgMois(){
+  let html='';
+  for(let i=0;i<cfgState.nbMois;i++){
+    const lbl=cfgState.moisLabels[i]||MOIS_NOMS[i%12];
+    html+=`<div class="mbr-cot-row">
+      <span style="font-size:13px;color:var(--mut);min-width:20px">${i+1}.</span>
+      <input type="text" value="${lbl}" onchange="cfgState.moisLabels[${i}]=this.value"
+        style="flex:1;height:36px;font-size:13px;" placeholder="Nom du mois"/>
+    </div>`;
+  }
+  document.getElementById('cfg-mois-list').innerHTML=html;
+}
+
+function saveCotisation(){
+  const nom=document.getElementById('cfg-nom').value.trim();
+  if(!nom){toast('Entre le nom de la cotisation');wTab(0);return;}
+  const inclus=cfgState.cfgMbrs.filter(cm=>cm.inclus);
+  if(!inclus.length){toast('Ajoute au moins un membre');wTab(1);return;}
+  // Lire labels depuis DOM
+  document.querySelectorAll('#cfg-mois-list input').forEach((inp,i)=>{cfgState.moisLabels[i]=inp.value||MOIS_NOMS[i%12];});
+  // Lire montants depuis DOM
+  document.querySelectorAll('#cfg-membres-list input[type=number]').forEach((inp,i)=>{if(cfgState.cfgMbrs[i])cfgState.cfgMbrs[i].montant=parseInt(inp.value)||0;});
+
+  if(cfgState.cotId){
+    // Modifier
+    const c=getCot(cfgState.cotId);
+    c.nom=nom;c.desc=document.getElementById('cfg-desc').value;
+    c.objectif=parseInt(document.getElementById('cfg-objectif').value)||0;
+    c.devise=document.getElementById('cfg-devise').value;
+    c.debut=document.getElementById('cfg-debut').value;
+    c.fin=document.getElementById('cfg-fin').value;
+    c.moisLabels=cfgState.moisLabels.slice(0,cfgState.nbMois);
+    c.membres=inclus.map(cm=>({mbrId:cm.mbrId,montant:cm.montant}));
+    saveAll();toast('Cotisation modifiee !');
+  } else {
+    // Nouvelle
+    const newCot={
+      id:nextCotId++,nom,
+      desc:document.getElementById('cfg-desc').value,
+      objectif:parseInt(document.getElementById('cfg-objectif').value)||0,
+      devise:document.getElementById('cfg-devise').value,
+      debut:document.getElementById('cfg-debut').value,
+      fin:document.getElementById('cfg-fin').value,
+      statut:'active',
+      moisLabels:cfgState.moisLabels.slice(0,cfgState.nbMois),
+      membres:inclus.map(cm=>({mbrId:cm.mbrId,montant:cm.montant})),
+      paiements:{},
+    };
+    cotisations.push(newCot);
+    saveAll();
+    currentCotId=newCot.id;
+    toast('Cotisation creee !');
+    renderDetail();
+    showPage('detail',true);
+    return;
+  }
+  showPage('accueil');
+}
+
+function toggleArchive(cotId){
+  const c=getCot(cotId);if(!c)return;
+  c.statut=c.statut==='archive'?'active':'archive';
+  saveAll();renderAccueil();toast(c.statut==='archive'?'Cotisation archivee':'Cotisation restauree');
+}
+function deleteCot(cotId){
+  confirm2('Supprimer cette cotisation ? Toutes les donnees seront perdues.',()=>{
+    cotisations=cotisations.filter(c=>c.id!==cotId);
+    saveAll();renderAccueil();toast('Cotisation supprimee');
+  });
+}
+
+// ═══════════════════════════════════════════
+// MEMBRES PAGE
+// ═══════════════════════════════════════════
+function renderMembresPage(){
+  let html='';
+  membres.forEach(m=>{
+    // Cotisations du membre
+    const cotsM=cotisations.filter(c=>(c.membres||[]).some(cm=>cm.mbrId===m.id));
+    let totalAtt=0,totalRec=0;
+    cotsM.forEach(c=>{
+      const cm=(c.membres||[]).find(x=>x.mbrId===m.id);
+      const nb=c.moisLabels?c.moisLabels.length:0;
+      totalAtt+=(cm?cm.montant:0)*nb;
+      for(let mi=0;mi<nb;mi++){const p=(c.paiements||{})[m.id]&&c.paiements[m.id][mi];if(p)totalRec+=p.verse||0;}
+    });
+    html+=`<div class="card" style="padding:12px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="av" style="width:42px;height:42px;font-size:17px;">${m.prenom.charAt(0).toUpperCase()}</div>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:14px">${mbrName(m.id)}</div>
+          <div style="font-size:11px;color:var(--mut)">${m.tel||'Pas de tel'} ${m.email?'· '+m.email:''}</div>
+          <div style="font-size:11px;color:var(--mut);margin-top:2px;">${cotsM.length} cotisation(s) · Recu : ${fmtNum(totalRec)} · Reste : ${fmtNum(totalAtt-totalRec)}</div>
+        </div>
+        <div style="display:flex;gap:5px;">
+          <button class="btn btn-outline btn-sm btn-ico" onclick="openEditMbrModal(${m.id})">✏️</button>
+          <button class="btn btn-red btn-sm btn-ico" onclick="deleteMbr(${m.id})">✕</button>
+        </div>
+      </div>
+      ${cotsM.length?`<div style="margin-top:8px;display:flex;gap:5px;flex-wrap:wrap;">${cotsM.map(c=>`<span class="bdg bdg-ok" style="cursor:pointer;" onclick="openDetail(${c.id})">${c.nom}</span>`).join('')}</div>`:''}
+    </div>`;
+  });
+  if(!html)html=`<div class="empty"><div class="empty-ico">👥</div><div>Aucun membre.</div></div>`;
+  document.getElementById('mbr-global-list').innerHTML=html;
+}
+function openAddMbrModal(){
+  editMbrId=null;
+  document.getElementById('mbr-modal-title').textContent='Nouveau membre';
+  ['mbr-prenom','mbr-nom','mbr-tel','mbr-email'].forEach(id=>document.getElementById(id).value='');
+  openModal('add-mbr-modal');
+}
+function openEditMbrModal(id){
+  const m=getMbr(id);if(!m)return;
+  editMbrId=id;
+  document.getElementById('mbr-modal-title').textContent='Modifier membre';
+  document.getElementById('mbr-prenom').value=m.prenom||'';
+  document.getElementById('mbr-nom').value=m.nom||'';
+  document.getElementById('mbr-tel').value=m.tel||'';
+  document.getElementById('mbr-email').value=m.email||'';
+  openModal('add-mbr-modal');
+}
+function saveMbrModal(){
+  const prenom=document.getElementById('mbr-prenom').value.trim();
+  if(!prenom){toast('Entre un prenom');return;}
+  if(editMbrId){
+    const m=getMbr(editMbrId);
+    m.prenom=prenom;m.nom=document.getElementById('mbr-nom').value.trim();
+    m.tel=document.getElementById('mbr-tel').value.trim();
+    m.email=document.getElementById('mbr-email').value.trim();
+  } else {
+    membres.push({id:nextMbrId++,prenom,nom:document.getElementById('mbr-nom').value.trim(),tel:document.getElementById('mbr-tel').value.trim(),email:document.getElementById('mbr-email').value.trim()});
+  }
+  saveAll();closeModal('add-mbr-modal');renderMembresPage();toast(editMbrId?'Membre modifie !':'Membre ajoute !');
+}
+function deleteMbr(id){
+  confirm2('Supprimer ce membre ? Il sera retire de toutes les cotisations.',()=>{
+    membres=membres.filter(m=>m.id!==id);
+    cotisations.forEach(c=>{c.membres=(c.membres||[]).filter(cm=>cm.mbrId!==id);});
+    saveAll();renderMembresPage();toast('Membre supprime');
+  });
+}
+
+// ═══════════════════════════════════════════
+// RAPPELS
+// ═══════════════════════════════════════════
+function buildWAMsg(cotId,mbrId){
+  const custom=document.getElementById('wa-msg-custom')?.value.trim();
+  if(custom)return custom;
+  const c=getCot(cotId);if(!c)return '';
+  const cm=(c.membres||[]).find(x=>x.mbrId===mbrId);if(!cm)return '';
+  const nb=c.moisLabels?c.moisLabels.length:0;
+  const moisRetard=[];
+  let montantDu=0;
+  for(let mi=0;mi<nb;mi++){
+    const p=(c.paiements||{})[mbrId]&&c.paiements[mbrId][mi];
+    const verse=p?p.verse||0:0;
+    if(verse<(cm.montant||0)){
+      moisRetard.push(c.moisLabels[mi]);
+      montantDu+=(cm.montant||0)-verse;
+    }
+  }
+  const devise=c.devise||'FCFA';
+  return `Bonjour ${mbrName(mbrId)},\n\nRappel pour la cotisation *${c.nom}*.\n\nMois non regles : *${moisRetard.join(', ')}*\nMontant du : *${fmtNum(montantDu)} ${devise}*\n\nMerci de regulariser.\n\n${appCfg.famille||'Famille Tamgue'}`;
+}
+function envoyerRappelMbr(cotId,mbrId){
+  const m=getMbr(mbrId);if(!m)return;
+  const msg=buildWAMsg(cotId,mbrId);
+  const tel=m.tel?m.tel.replace(/\s|\+|-/g,''):'';
+  const url=tel?`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`:`https://wa.me/?text=${encodeURIComponent(msg)}`;
+  window.open(url,'_blank');
+}
+function envoyerTous(){
+  const retardataires=[];
+  cotisations.forEach(c=>{
+    (c.membres||[]).forEach(cm=>{
+      const nb=c.moisLabels?c.moisLabels.length:0;
+      for(let mi=0;mi<nb;mi++){
+        const p=(c.paiements||{})[cm.mbrId]&&c.paiements[cm.mbrId][mi];
+        const verse=p?p.verse||0:0;
+        if(verse<(cm.montant||0)){retardataires.push({cotId:c.id,mbrId:cm.mbrId});break;}
+      }
+    });
+  });
+  if(!retardataires.length){toast('Tout le monde a paye !');return;}
+  retardataires.forEach((r,i)=>setTimeout(()=>envoyerRappelMbr(r.cotId,r.mbrId),i*700));
+  toast('Envoi pour '+retardataires.length+' membre(s)...');
+}
+function renderRappels(){
+  let html='';
+  cotisations.forEach(c=>{
+    const nb=c.moisLabels?c.moisLabels.length:0;
+    (c.membres||[]).forEach(cm=>{
+      const moisRetard=[];
+      for(let mi=0;mi<nb;mi++){
+        const p=(c.paiements||{})[cm.mbrId]&&c.paiements[cm.mbrId][mi];
+        const verse=p?p.verse||0:0;
+        if(verse<(cm.montant||0))moisRetard.push(c.moisLabels[mi]);
+      }
+      if(!moisRetard.length)return;
+      const m=getMbr(cm.mbrId);if(!m)return;
+      html+=`<div class="card" style="padding:12px;">
+        <div class="rap-item" style="padding:0;border:none;">
+          <div>
+            <div style="font-weight:600;font-size:13px">${mbrName(cm.mbrId)}</div>
+            <div style="font-size:11px;color:var(--mut)">${c.nom} · ${moisRetard.join(', ')}</div>
+            <div style="font-size:11px;color:var(--red);margin-top:2px;">⚠️ ${moisRetard.length} mois en retard</div>
+          </div>
+          <button class="btn btn-sm" style="background:rgba(37,211,102,.15);border:1px solid rgba(37,211,102,.3);color:#1a8a45;white-space:nowrap;" onclick="envoyerRappelMbr(${c.id},${cm.mbrId})">📲 WhatsApp</button>
+        </div>
+      </div>`;
+    });
+  });
+  document.getElementById('rappels-list').innerHTML=html||`<div class="empty"><div class="empty-ico">✅</div><div>Personne en retard !</div></div>`;
+}
+
+// ═══════════════════════════════════════════
+// RAPPORTS PDF
+// ═══════════════════════════════════════════
+function renderRapportsPage(){
+  const sel=document.getElementById('pdf-select');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">-- Choisir une cotisation --</option>';
+  cotisations.forEach(c=>sel.innerHTML+=`<option value="${c.id}" ${String(c.id)===cur?'selected':''}>${c.nom}</option>`);
+  renderPDFHist();
+  if(cur)renderPDFPreview();
+}
+function renderPDFPreview(){
+  const cotId=parseInt(document.getElementById('pdf-select').value);
+  const wrap=document.getElementById('pdf-preview-wrap');
+  if(!cotId){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  const c=getCot(cotId);if(!c)return;
+  const {att,rec,reste}=calcCotTotaux(cotId);
+  const devise=c.devise||'FCFA';
+  const nb=c.moisLabels?c.moisLabels.length:0;
+
+  let rows='',notesRows='';
+  (c.membres||[]).forEach(m=>{
+    let mt=0;
+    let cols=`<td style="padding:5px 6px;font-size:11px;font-weight:500">${mbrName(m.mbrId)}<br><span style="font-size:9px;color:var(--mut)">${fmtNum(m.montant)}/mois</span></td>`;
+    for(let mi=0;mi<nb;mi++){
+      const p=(c.paiements||{})[m.mbrId]&&c.paiements[m.mbrId][mi];
+      const verse=p?p.verse||0:0;
+      const att2=m.montant||0;
+      mt+=verse;
+      let ico='✗',color='var(--red)';
+      if(verse>=att2&&verse>0){ico='✓';color='var(--grn)';}
+      else if(verse>0){ico='~'+fmtNum(verse);color='var(--amb)';}
+      cols+=`<td style="padding:5px 3px;text-align:center;font-size:11px;color:${color}">${ico}${p&&p.date?`<br><span style="font-size:8px;color:var(--mut)">${p.date}</span>`:''}</td>`;
+      if(p&&p.note)notesRows+=`<tr><td style="padding:5px 6px;font-size:11px;font-weight:500">${mbrName(m.mbrId)}</td><td style="padding:5px 6px;font-size:11px">${c.moisLabels[mi]}</td><td colspan="${nb-1}" style="padding:5px 6px;font-size:11px;color:var(--mut)">📝 ${p.note}</td></tr>`;
+    }
+    cols+=`<td style="padding:5px 6px;text-align:right;font-size:11px;font-weight:700;color:var(--grn)">${fmtNum(mt)}</td>`;
+    rows+=`<tr>${cols}</tr>`;
+  });
+
+  let hcols=`<th style="text-align:left;padding:6px;font-size:10px;color:var(--mut)">Membre</th>`;
+  (c.moisLabels||[]).forEach(ml=>hcols+=`<th style="padding:6px 3px;text-align:center;font-size:10px;color:var(--mut)">${ml}<br><span style="color:var(--gold);font-size:9px">Montant perso</span></th>`);
+  hcols+=`<th style="padding:6px;text-align:right;font-size:10px;color:var(--mut)">Total</th>`;
+
+  document.getElementById('pdf-preview').innerHTML=`
+    <div style="border:1px solid var(--brd);border-radius:10px;overflow:hidden;">
+      <div style="background:var(--dark);padding:12px;text-align:center;">
+        <div style="font-family:'DM Serif Display',serif;color:var(--gold-l);font-size:15px">${appCfg.famille||'Famille Tamgue'}</div>
+        <div style="color:rgba(201,168,76,.55);font-size:11px;margin-top:2px">${c.nom} · ${new Date().getFullYear()}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--brd);">
+        <div style="padding:9px;text-align:center;border-right:1px solid var(--brd)"><div style="font-size:14px;font-weight:700;color:var(--grn)">${fmtNum(rec)}</div><div style="font-size:9px;color:var(--mut)">Recu ${devise}</div></div>
+        <div style="padding:9px;text-align:center;border-right:1px solid var(--brd)"><div style="font-size:14px;font-weight:700;color:var(--red)">${fmtNum(reste)}</div><div style="font-size:9px;color:var(--mut)">Reste ${devise}</div></div>
+        <div style="padding:9px;text-align:center"><div style="font-size:14px;font-weight:700">${att?Math.round(rec/att*100):0}%</div><div style="font-size:9px;color:var(--mut)">Progression</div></div>
+      </div>
+      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr style="background:rgba(128,128,100,.05)">${hcols}</tr></thead><tbody>${rows}</tbody></table></div>
+      ${notesRows?`<div style="padding:10px;border-top:1px solid var(--brd);"><div style="font-size:10px;font-weight:600;color:var(--mut);text-transform:uppercase;margin-bottom:6px;">Remarques</div><table style="width:100%;font-size:11px;border-collapse:collapse">${notesRows}</table></div>`:''}
+    </div>`;
+}
+
+function genererPDF(){
+  const cotId=parseInt(document.getElementById('pdf-select').value);
+  if(!cotId){toast('Choisis une cotisation');return;}
+  if(!window.jspdf){toast('PDF en cours de chargement...');return;}
+  const {jsPDF}=window.jspdf;
+  const c=getCot(cotId);if(!c)return;
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const famille=appCfg.famille||'Famille Tamgue';
+  const devise=c.devise||'FCFA';
+  const now=new Date();
+  const dateGen=now.toLocaleDateString('fr-FR')+' a '+now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  const {att,rec,reste}=calcCotTotaux(cotId);
+  const nb=c.moisLabels?c.moisLabels.length:0;
+
+  // Header
+  doc.setFillColor(26,26,24);doc.rect(0,0,297,44,'F');
+  doc.setDrawColor(201,168,76);doc.setLineWidth(0.5);doc.line(10,42,287,42);
+  doc.setTextColor(232,201,106);doc.setFontSize(18);doc.setFont('helvetica','bold');
+  doc.text(famille.toUpperCase(),148,16,{align:'center'});
+  doc.setFontSize(12);doc.setFont('helvetica','normal');doc.setTextColor(201,168,76);
+  doc.text(c.nom+' - '+new Date().getFullYear(),148,27,{align:'center'});
+  doc.setFontSize(8);doc.setTextColor(140,130,100);
+  doc.text('Genere le : '+dateGen,148,36,{align:'center'});
+
+  // Stats boxes
+  const boxes=[[fmtPDF(rec)+' '+devise,'RECU',[45,106,79]],[fmtPDF(reste)+' '+devise,'RESTE',[155,34,38]],[(c.membres||[]).length+'','MEMBRES',[26,26,24]],[att?Math.round(rec/att*100)+'%':'0%','PROGRESSION',[123,79,18]]];
+  boxes.forEach((b,i)=>{
+    const x=12+i*70;
+    doc.setFillColor(...b[2]);doc.roundedRect(x,49,64,18,2,2,'F');
+    doc.setTextColor(255,255,255);doc.setFontSize(10);doc.setFont('helvetica','bold');
+    doc.text(String(b[0]),x+32,58,{align:'center'});
+    doc.setFontSize(7);doc.setFont('helvetica','normal');
+    doc.text(b[1],x+32,64,{align:'center'});
+  });
+
+  // Table membres
+  const head=[['Membre','Montant/mois',...(c.moisLabels||[]).map((ml,i)=>ml),'Total recu','Remarque']];
+  const notesArr=[];
+  const body=(c.membres||[]).map(m=>{
+    let mt=0;
+    const row=[mbrName(m.mbrId),fmtPDF(m.montant)+' '+devise];
+    for(let mi=0;mi<nb;mi++){
+      const p=(c.paiements||{})[m.mbrId]&&c.paiements[m.mbrId][mi];
+      const verse=p?p.verse||0:0;
+      const att2=m.montant||0;
+      mt+=verse;
+      let cell='';
+      if(verse>=att2&&verse>0)cell='OK'+(p&&p.date?' '+p.date:'');
+      else if(verse>0)cell='~'+fmtPDF(verse);
+      else cell='X';
+      row.push(cell);
+      if(p&&p.note)notesArr.push([mbrName(m.mbrId),c.moisLabels[mi],p.note]);
+    }
+    row.push(fmtPDF(mt)+' '+devise);
+    // Agreger notes dans la derniere colonne
+    const notes=(c.paiements||{})[m.mbrId]?Object.values(c.paiements[m.mbrId]).filter(p=>p&&p.note).map(p=>p.note).join(' / '):'';
+    row.push(notes);
+    return row;
+  });
+
+  // Ligne total
+  const totRow=['TOTAL',''];
+  for(let mi=0;mi<nb;mi++){
+    let t=0;(c.membres||[]).forEach(m=>{const p=(c.paiements||{})[m.mbrId]&&c.paiements[m.mbrId][mi];if(p)t+=p.verse||0;});
+    totRow.push(fmtPDF(t));
+  }
+  totRow.push(fmtPDF(rec)+' '+devise);
+  totRow.push('');
+
+  doc.autoTable({
+    startY:73,head,body,foot:[totRow],theme:'grid',
+    headStyles:{fillColor:[26,26,24],textColor:[201,168,76],fontStyle:'bold',fontSize:7,halign:'center'},
+    footStyles:{fillColor:[245,237,213],textColor:[123,79,18],fontStyle:'bold',fontSize:7,halign:'center'},
+    styles:{fontSize:7,cellPadding:2.5},
+    columnStyles:{0:{halign:'left',fontStyle:'bold',cellWidth:28},1:{cellWidth:22,halign:'right'}},
+    didParseCell(d){
+      if(d.section==='body'&&d.column.index>=2&&d.column.index<2+nb){
+        const v=String(d.cell.raw);
+        if(v.startsWith('OK')){d.cell.styles.textColor=[45,106,79];d.cell.styles.fontStyle='bold';}
+        else if(v.startsWith('~')){d.cell.styles.textColor=[123,79,18];}
+        else if(v==='X'){d.cell.styles.textColor=[155,34,38];d.cell.styles.opacity=.7;}
+        d.cell.styles.halign='center';
+      }
+    },
+    margin:{left:10,right:10},
+  });
+
+  // Remarques section si besoin
+  if(notesArr.length){
+    const nY=doc.lastAutoTable.finalY+8;
+    doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(100,90,70);
+    doc.text('REMARQUES :',10,nY);
+    doc.autoTable({
+      startY:nY+4,
+      head:[['Membre','Mois','Remarque']],
+      body:notesArr,
+      theme:'plain',
+      styles:{fontSize:7,cellPadding:2},
+      headStyles:{fontStyle:'bold',textColor:[100,90,70],fontSize:7},
+      margin:{left:10,right:10},
+    });
+  }
+
+  const pages=doc.internal.getNumberOfPages();
+  for(let i=1;i<=pages;i++){
+    doc.setPage(i);doc.setFontSize(7);doc.setTextColor(160,150,130);
+    doc.text('Page '+i+'/'+pages+' - '+famille+' - '+c.nom,148,198,{align:'center'});
+    doc.setDrawColor(201,168,76);doc.setLineWidth(0.3);doc.line(10,194,287,194);
+  }
+
+  const fname=famille.replace(/ /g,'_')+'_'+c.nom.replace(/ /g,'_')+'_'+dateGen.replace(/[/:]/g,'-').replace(/ /g,'_')+'.pdf';
+  doc.save(fname);
+  sauvegarderRapport(cotId,dateGen,fname);
+  toast('PDF telecharge !');
+}
+
+function sauvegarderRapport(cotId,dateGen,fname){
+  const cid=cotId||parseInt(document.getElementById('pdf-select').value);
+  const c=getCot(cid);if(!c)return;
+  const {rec,att}=calcCotTotaux(cid);
+  rapportsHist.unshift({
+    cotId:cid,cotNom:c.nom,
+    date:dateGen||new Date().toLocaleDateString('fr-FR'),
+    filename:fname||c.nom+'_rapport.pdf',
+    rec,att,
+  });
+  if(rapportsHist.length>50)rapportsHist=rapportsHist.slice(0,50);
+  saveAll();renderPDFHist();toast('Rapport archive !');
+}
+function renderPDFHist(){
+  const el=document.getElementById('pdf-hist-list');
+  if(!rapportsHist.length){el.innerHTML='<div style="color:var(--mut);font-size:13px;text-align:center;padding:16px;">Aucun rapport genere.</div>';return;}
+  el.innerHTML=rapportsHist.slice(0,20).map(r=>`
+    <div class="pdf-hist-item">
+      <div>
+        <div style="font-size:13px;font-weight:500">${r.cotNom}</div>
+        <div style="font-size:10px;color:var(--mut)">${r.date} · ${fmtNum(r.rec)} recu</div>
+        <div style="font-size:10px;color:var(--mut);font-style:italic">${r.filename}</div>
+      </div>
+      <span class="bdg bdg-ok">${r.att?Math.round(r.rec/r.att*100):0}%</span>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════
+// PARAMÈTRES
+// ═══════════════════════════════════════════
+function renderParams(){
+  document.getElementById('param-famille').value=appCfg.famille||'';
+  document.getElementById('param-devise').value=appCfg.devise||'FCFA';
+  document.getElementById('dark-toggle').checked=!!appCfg.dark;
+  document.getElementById('pin-toggle').checked=!!localStorage.getItem('pin');
+  document.getElementById('remove-pin-btn').style.display=localStorage.getItem('pin')?'block':'none';
+}
+function saveParams(){
+  appCfg.famille=document.getElementById('param-famille').value||'Famille Tamgue';
+  appCfg.devise=document.getElementById('param-devise').value||'FCFA';
+  document.getElementById('topbar-title').textContent=appCfg.famille;
+  saveAll();
+}
+
+// ═══════════════════════════════════════════
+// EXPORT / IMPORT
+// ═══════════════════════════════════════════
+function exportData(){
+  const data={membres,cotisations,rapportsHist,appCfg,v:2};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='cotisations_backup_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  toast('Donnees exportees !');
+}
+function importData(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const d=JSON.parse(ev.target.result);
+      if(!d.membres)throw new Error('Fichier invalide');
+      membres=d.membres;cotisations=d.cotisations||[];
+      rapportsHist=d.rapportsHist||[];appCfg=d.appCfg||{};
+      nextMbrId=Math.max(0,...membres.map(m=>m.id))+1;
+      nextCotId=Math.max(0,...cotisations.map(c=>c.id),0)+1;
+      saveAll();applyDark(!!appCfg.dark);
+      showPage('accueil');toast('Donnees importees !');
+    }catch(err){toast('Fichier invalide');}
+  };
+  reader.readAsText(file);
+}
+function resetAll(){
+  confirm2('Supprimer TOUTES les donnees ? Action irreversible.',()=>{
+    ['mbr2','cots2','rphist','appcfg2','pin'].forEach(k=>localStorage.removeItem(k));
+    location.reload();
+  });
+}
+
+// ═══════════════════════════════════════════
+// MODALS HELPERS
+// ═══════════════════════════════════════════
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function confirm2(msg,cb){
+  document.getElementById('confirm-text').textContent=msg;
+  document.getElementById('confirm-ok-btn').onclick=()=>{cb();closeModal('confirm-modal');};
+  openModal('confirm-modal');
+}
+// Fermer modals en cliquant dehors
+document.querySelectorAll('.overlay').forEach(o=>{
+  o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');});
+});
+
+// ═══════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',()=>{
+  applyDark(!!appCfg.dark);
+  if(localStorage.getItem('pin'))document.getElementById('pin-btn').textContent='🔐';
+  checkPIN();
+  renderAccueil();
+});
+</script>
+
+<script>
+// ── SERVICE WORKER (PWA offline) ──
+if('serviceWorker' in navigator){
+  const sw = `
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open('cotisations-v1').then(cache => cache.addAll(['./', './index.html']))
+  );
+  self.skipWaiting();
+});
+self.addEventListener('fetch', e => {
+  e.respondWith(
+    caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match('./')))
+  );
+});
+`;
+  const blob = new Blob([sw], {type:'application/javascript'});
+  const url = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(url).catch(()=>{});
+}
+
+// ── MANIFEST (PWA installable) ──
+const manifest = {
+  name: "Cotisations Famille",
+  short_name: "Cotisations",
+  description: "Gestion des cotisations familiales",
+  start_url: "./",
+  display: "standalone",
+  background_color: "#1A1A18",
+  theme_color: "#1A1A18",
+  orientation: "portrait",
+  icons: [
+    {src: makeIcon(192), sizes: "192x192", type: "image/png", purpose: "any maskable"},
+    {src: makeIcon(512), sizes: "512x512", type: "image/png", purpose: "any maskable"}
+  ]
+};
+
+function makeIcon(size){
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  // Background
+  ctx.fillStyle = '#1A1A18';
+  ctx.beginPath();
+  ctx.roundRect(0, 0, size, size, size*0.22);
+  ctx.fill();
+  // Gold circle
+  ctx.fillStyle = '#C9A84C';
+  ctx.beginPath();
+  ctx.arc(size/2, size*0.44, size*0.28, 0, Math.PI*2);
+  ctx.fill();
+  // Money emoji style - draw F letter
+  ctx.fillStyle = '#1A1A18';
+  ctx.font = `bold ${size*0.32}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('F', size/2, size*0.44);
+  // Bottom text
+  ctx.fillStyle = '#C9A84C';
+  ctx.font = `${size*0.1}px sans-serif`;
+  ctx.fillText('COTISATIONS', size/2, size*0.78);
+  return c.toDataURL('image/png');
+}
+
+// Inject manifest
+const iconData192 = makeIcon(192);
+const iconData512 = makeIcon(512);
+const manifestObj = {
+  name: "Cotisations Famille",
+  short_name: "Cotisations",
+  description: "Gestion des cotisations familiales",
+  start_url: "./",
+  display: "standalone",
+  background_color: "#1A1A18",
+  theme_color: "#1A1A18",
+  orientation: "portrait-primary",
+  icons: [
+    {src: iconData192, sizes: "192x192", type: "image/png", purpose: "any maskable"},
+    {src: iconData512, sizes: "512x512", type: "image/png", purpose: "any maskable"}
+  ]
+};
+const mblob = new Blob([JSON.stringify(manifestObj)], {type:'application/json'});
+const murl = URL.createObjectURL(mblob);
+const mlink = document.createElement('link');
+mlink.rel = 'manifest'; mlink.href = murl;
+document.head.appendChild(mlink);
+
+// Apple touch icon
+const alink = document.createElement('link');
+alink.rel = 'apple-touch-icon';
+alink.href = iconData192;
+document.head.appendChild(alink);
+
+// Hide splash after load
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    const s = document.getElementById('splash');
+    if(s){s.classList.add('hide');setTimeout(()=>s.remove(), 700);}
+  }, 1400);
+});
+</script>
+
+</body>
+</html>
